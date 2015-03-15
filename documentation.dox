@@ -1,0 +1,151 @@
+/** \file
+
+\mainpage
+
+uCmd is a very simple command line parser designed for use in
+microcontrollers. It is just a function pointer typedef, struct typedef and
+a single interface funcion. Check out \ref example to get started quickly.
+
+All you need to do is define some \ref cmd_funcs, a \ref cmd_list and
+then call ucmd_parse() with the command string that you want to parse.
+
+Because this is designed for uControllers, I didn't want to include stdio.h
+by default. Thus it is up to you to write a function to print the command
+help. However, there is an example in the section \ref print_help.
+
+
+\section cmd_funcs Command callback functions
+
+Command callbacks should match the Command_cb() typedef. They should
+arguments argc and argv in the same way as is standard for main in
+standard c programs. argc is the number of arguments, and argv is an
+array of char *'s to each of the arguments (including the command
+itself).
+
+Thus for a command string of "cmd1 arg1 arg2 arg3", ucmd_parse() would
+attempt to match 'cmd' to a command in the \ref cmd_list and call the
+function pointed to by it's Command_cb() with the following arguments:
+
+\code
+argc = 4;
+argv[] = {"cmd1", "arg1", "arg2", "arg3"};
+\endcode
+
+
+\section cmd_list Command List
+
+The command list is an array of Command members. Below is an example
+that shows how to define it.
+
+.cmd is the string that will be matched against input, .help is the help
+text that can be printed by a print function (\ref print_help) and .fn
+is the callback function that will be called when .cmd matches input.
+
+\warning    Do NOT forget the null terminator at the end! If you do, get ready
+            for a segfault..
+
+\code
+// an example \ref Command List
+Command my_cmd_list[] = {
+    {
+        .cmd = "?",
+        .help = "print available commands with their help text",
+        .fn = print_help_cb,
+    },
+    {
+        .cmd = "cmd1",
+        .help = "help text for command 1",
+        .fn = cmd1_callback,
+    },
+    {
+        .cmd = "cmd2",
+        .help = "help text for command 2",
+        .fn = cmd2_callback,
+    },
+    {}, // null list terminator DON'T FORGET THIS!
+}
+\endcode
+
+
+\section print_help Printing the command list
+
+\code
+// a simple function to print available commands
+int print_help_cb(int argc, char *argv[])
+{
+    printf("Available Commands:\n");
+    Command *p = my_cmd_list;
+    while (p->cmd) {
+        printf("\t%s \t%s\n", p->cmd, p->help);
+        p++;
+    }
+
+    return 0;
+}
+\endcode
+
+
+\section example Basic Usage
+\code
+// define some command callbacks
+
+int print_help_cb(int argc, char *argv[])
+{
+    printf("Available Commands:\n");
+    Command *p = my_cmd_list;
+    while (p->cmd) {
+        printf("\t%s \t%s\n", p->cmd, p->help);
+        p++;
+    }
+
+    return 0;
+}
+
+int led_cb(int argc, char *argv[])
+{
+    if (argc < 2)
+        printf("requires argument of 'ON' or 'OFF'\n");
+
+    if (strcmp(argv[1], "ON")==0) {
+        LED_ON();
+    } else if (strcmp(argv[1], "OFF")==0) {
+        LED_OFF();
+    }
+}
+
+
+// define command list
+Command my_cmd_list[] = {
+    {
+        .cmd = "?",
+        .help = "print available commands with their help text",
+        .fn = print_help_cb,
+    },
+    {
+        .cmd = "led",
+        .help = "<ON|OFF> turns led on or off",
+        .fn = led_cb,
+    },
+    {}, // null list terminator DON'T FORGET THIS!
+}
+
+int main()
+{
+    char *str1 = "?";
+    char *str2 = "led ON";
+    char *str2 = "bad cmd";
+
+    ucmd_parse(my_cmd_list, " ", str1);                   // prints help message
+    ucmd_parse(my_cmd_list, " ", str2);                          // turns led on
+    int ret = ucmd_parse(my_cmd_list, " ", str3);   // ret == UCMD_CMD_NOT_FOUND
+}
+\endcode
+
+
+\author     Dan Fekete <thefekete@gmail.com>
+\date       March 13, 2015
+
+\copyright  Copyright 2015, Dan Fekete <thefekete@gmail.com>, Released
+under the <a href="http://www.gnu.org/licenses/gpl-2.0.html">GNU GPL v2</a>
+
+*/
